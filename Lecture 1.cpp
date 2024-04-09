@@ -23,119 +23,284 @@ void setSize(unsigned w, unsigned h)
 	width = w;
 	height = h;
 }
-
-void mapGenerating()
+//0 - simple mode
+//1 - spiral mode
+void mapGenerating(int mode)
 {
 	mapPtr = new int* [height]();
 	for (unsigned i = 0; i < width; i++)
-		*(mapPtr + i) = new int[width]();		
+		*(mapPtr + i) = new int[width]();	
 
-	for (int i=0; i < height; i++)
-	{
-		for (int j=0; j < width; j++)
+	int N = width * height;
+
+	int x = width/2;
+	int y = height/2;
+
+	int left = x;
+	int right = x;
+	int top = y;
+	int bottom = y;
+
+	int count = 0;
+
+	int dir = 0;
+	switch (mode) {
+	case 0:
+		for (int i = 0; i < height; i++)
 		{
-			//Cписок возможных тайлов
-			//0 - лес
-			//1 - трава
-			//2 - густая трава
-			//3 - земля
-			//4 - песок
-			//5 - море
-			int A[6] = {0, 1, 2, 3, 4, 5};
+			for (int j = 0; j < width; j++)
+			{
 
+				int top_index = 6;
+				int left_index = 6;
+				int right_index = 6;
+				int bottom_index = 6;
+
+				if (i > 0) {
+					top_index = *(*(mapPtr + j) + i - 1);
+				}
+
+				if (j > 0) {
+					left_index = *(*(mapPtr + j - 1) + i);
+				}
+
+
+				*(*(mapPtr + j) + i) = ruleCheck(top_index, bottom_index, left_index, right_index);
+			}
+		}
+		break;
+	case 1:
+		while (count < N) {
 			int top_index = 6;
 			int left_index = 6;
 			int right_index = 6;
 			int bottom_index = 6;
 
-			int tyle_index;
-
-			if (i > 0) {
-				top_index = *(*(mapPtr + j) + i - 1);
-			}
-			
-			if (j > 0) {
-				left_index = *(*(mapPtr + j - 1) + i);
-			}
-			
-			switch (left_index)
+			//проход слева направо
+			switch (dir)
 			{
 			case 0:
-				A[1] = 6;
-				A[4] = 6;
-				A[5] = 6;
+				for (int i = top; i <= bottom; i++) {
+					if (top > 0) {
+						top_index = *(*(mapPtr + i - 1) + left);
+					}
+					right_index = *(*(mapPtr + i) + left + 1);
+
+					*(*(mapPtr + i) + left) = ruleCheck(top_index, bottom_index, left_index, right_index);
+					count++;
+				}
+				bottom++;
+				dir++;
 				break;
 			case 1:
-				A[0] = 6;
-				A[5] = 6;
+				for (int i = left; i <= right; i++) {
+					if (left > 0) {
+						left_index = *(*(mapPtr + bottom) + i - 1);
+					}
+					top_index = *(*(mapPtr + bottom - 1) + i);
+					*(*(mapPtr + bottom) + i) = ruleCheck(top_index, bottom_index, left_index, right_index);
+					count++;
+				}
+				right++;
+				dir++;
 				break;
 			case 2:
-				A[4] = 6;
-				A[5] = 6;
+				for (int i = bottom; i >= top; i--) {
+					left_index = *(*(mapPtr + i) + right - 1);
+					if (bottom < height) {
+						bottom_index = *(*(mapPtr + i - 1) + right);
+					}
+					*(*(mapPtr + i) + right) = ruleCheck(top_index, bottom_index, left_index, right_index);
+					count++;
+				}
+				top--;
+				dir++;
 				break;
 			case 3:
-				A[2] = 6;
-				A[4] = 6;
-				A[5] = 6;
-				break;
-			case 4:
-				A[0] = 6;
-				A[2] = 6;
-				A[3] = 6;
-				break;
-			case 5:
-				A[0] = 6;
-				A[1] = 6;
-				A[2] = 6;
-				A[3] = 6;
+				for (int i = right; i >= left; i--) {
+					if (right < width) {
+						right_index = *(*(mapPtr + top) + i + 1);
+					}
+					bottom_index = *(*(mapPtr + top + 1) + i);
+					*(*(mapPtr + top) + i) = ruleCheck(top_index, bottom_index, left_index, right_index);
+					count++;
+				}
+				left--;
+				dir++;
 				break;
 			default:
 				break;
 			}
-
-			switch (top_index)
-			{
-			case 0:
-				A[1] = 6;
-				A[4] = 6;
-				A[5] = 6;
-				break;
-			case 1:
-				A[0] = 6;
-				A[5] = 6;
-				break;
-			case 2:
-				A[4] = 6;
-				A[5] = 6;
-				break;
-			case 3:
-				A[2] = 6;
-				A[4] = 6;
-				A[5] = 6;
-				break;
-			case 4:
-				A[0] = 6;
-				A[2] = 6;
-				A[3] = 6;
-				break;
-			case 5:
-				A[0] = 6;
-				A[1] = 6;
-				A[2] = 6;
-				A[3] = 6;
-				break;
-			default:
-				break;
-			}
-
-			do
-			{
-				tyle_index = A[rand() % 6];
-			} while (tyle_index == 6);
-
-			*(*(mapPtr + j) + i) = tyle_index;
+			dir = dir % 4;
 		}
+		break;
+	default:
+		break;
 	}
+}
+
+int ruleCheck(int top_id = 6, int bottom_id = 6, int left_id = 6, int right_id = 6)
+{
+	//Cписок возможных тайлов
+	//0 - лес
+	//1 - трава
+	//2 - густая трава
+	//3 - земля
+	//4 - песок
+	//5 - вода
+	int A[6] = { 0, 1, 2, 3, 4, 5 };
+	int tyle_index = 0;
+
+	switch (left_id)
+	{
+	case 0:
+		A[1] = 6;
+		A[3] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 1:
+		A[0] = 6;
+		A[5] = 6;
+		break;
+	case 2:
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 3:
+		A[0] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 4:
+		A[0] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	case 5:
+		A[0] = 6;
+		A[1] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	default:
+		break;
+	}
+
+	switch (right_id)
+	{
+	case 0:
+		A[1] = 6;
+		A[3] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 1:
+		A[0] = 6;
+		A[5] = 6;
+		break;
+	case 2:
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 3:
+		A[0] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 4:
+		A[0] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	case 5:
+		A[0] = 6;
+		A[1] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	default:
+		break;
+	}
+
+	switch (top_id)
+	{
+	case 0:
+		A[1] = 6;
+		A[3] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 1:
+		A[0] = 6;
+		A[5] = 6;
+		break;
+	case 2:
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 3:
+		A[0] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 4:
+		A[0] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	case 5:
+		A[0] = 6;
+		A[1] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	default:
+		break;
+	}
+
+	switch (bottom_id)
+	{
+	case 0:
+		A[1] = 6;
+		A[3] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 1:
+		A[0] = 6;
+		A[5] = 6;
+		break;
+	case 2:
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 3:
+		A[0] = 6;
+		A[4] = 6;
+		A[5] = 6;
+		break;
+	case 4:
+		A[0] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	case 5:
+		A[0] = 6;
+		A[1] = 6;
+		A[2] = 6;
+		A[3] = 6;
+		break;
+	default:
+		break;
+	}
+
+	do
+	{
+		tyle_index = A[rand() % 6];
+	} while (tyle_index == 6);
+	
+	return tyle_index;
 }
 
 void killMap()
@@ -200,9 +365,8 @@ int main()
 	//Генерация карты x на y тайлов
 	level lvl;
 	lvl.setSize(47, 47);
-	lvl.mapGenerating();
+	lvl.mapGenerating(1);
 	
-
 	sf::RenderWindow window(sf::VideoMode(798, 799), "tile generator");
 	
 	//Рендер окна
